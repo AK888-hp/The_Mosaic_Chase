@@ -30,7 +30,7 @@ function App() {
       fetch(`${BACKEND_URL}/api/team/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: savedCode, playerRole: savedRole })
+        body: JSON.stringify({ code: savedCode, playerRole: savedRole, isRejoin: true })
       })
       .then(res => res.json())
       .then(data => {

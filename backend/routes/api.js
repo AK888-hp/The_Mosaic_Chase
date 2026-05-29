@@ -4,7 +4,7 @@ const Team = require('../models/Team');
 
 // Join or Create a team
 router.post('/team/join', async (req, res) => {
-  const { code, playerRole } = req.body;
+  const { code, playerRole, isRejoin } = req.body;
   try {
     let team = await Team.findOne({ code });
     if (!team) {
@@ -15,12 +15,14 @@ router.post('/team/join', async (req, res) => {
     }
 
     // Check role availability
-    if (playerRole === 'player1') {
-      if (team.players.player1) return res.status(400).json({ error: 'Player 1 (Tech) is already taken.' });
-      team.players.player1 = 'joined';
-    } else if (playerRole === 'player2') {
-      if (team.players.player2) return res.status(400).json({ error: 'Player 2 (Aptitude) is already taken.' });
-      team.players.player2 = 'joined';
+    if (!isRejoin) {
+      if (playerRole === 'player1') {
+        if (team.players.player1) return res.status(400).json({ error: 'Player 1 (Tech) is already taken.' });
+        team.players.player1 = 'joined';
+      } else if (playerRole === 'player2') {
+        if (team.players.player2) return res.status(400).json({ error: 'Player 2 (Aptitude) is already taken.' });
+        team.players.player2 = 'joined';
+      }
     }
 
     await team.save();

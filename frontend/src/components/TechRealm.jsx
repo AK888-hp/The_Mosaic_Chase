@@ -182,7 +182,20 @@ function TechRealm({ teamState, socket }) {
     return `${m}m ${s}s`;
   };
 
-  if (!teamState) return <div>Loading...</div>;
+  useEffect(() => {
+    if (!teamState && !localStorage.getItem('teamCode')) {
+      navigate('/');
+    }
+  }, [teamState, navigate]);
+
+  if (!teamState) {
+    return (
+      <div style={{ textAlign: 'center', marginTop: '50px' }}>
+        <h3>Loading game data...</h3>
+        <p style={{ opacity: 0.7 }}>(This may take up to a minute if the server is waking up)</p>
+      </div>
+    );
+  }
 
   return (
     <div className="wood-card">
