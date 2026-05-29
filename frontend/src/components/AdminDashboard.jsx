@@ -7,7 +7,7 @@ function AdminDashboard({ socket }) {
 
   const fetchTeams = async () => {
     try {
-      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:5000';
       const response = await fetch(`${BACKEND_URL}/api/admin/teams`);
       const data = await response.json();
       data.sort((a, b) => a.totalScore - b.totalScore); // Lowest score first (Best)

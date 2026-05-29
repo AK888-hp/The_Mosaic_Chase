@@ -17,7 +17,7 @@ function Landing({ setTeamState, setPlayerRole, socket }) {
     }
 
     try {
-      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:5000';
       const response = await fetch(`${BACKEND_URL}/api/team/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
