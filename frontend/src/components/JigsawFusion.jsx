@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 function JigsawFusion({ teamState, socket }) {
-  const [draggedPiece, setDraggedPiece] = useState(null);
+  const [selectedPiece, setSelectedPiece] = useState(null);
   
   if (!teamState) return <div>Loading... Please join a team first.</div>;
 
@@ -24,17 +24,33 @@ function JigsawFusion({ teamState, socket }) {
   const availablePieces = Array.from({ length: totalPiecesEarned }).map((_, i) => i)
     .filter(pieceIndex => !gridState.includes(pieceIndex));
 
+  const handlePieceClick = (pieceId) => {
+    if (selectedPiece === pieceId) {
+      setSelectedPiece(null);
+    } else {
+      setSelectedPiece(pieceId);
+    }
+  };
+
+  const handleSlotClick = (dropIndex) => {
+    if (selectedPiece !== null && gridState[dropIndex] === null) {
+      socket.emit('place_jigsaw_piece', {
+        teamCode: teamState.code,
+        index: dropIndex,
+        pieceId: selectedPiece
+      });
+      setSelectedPiece(null);
+    }
+  };
+
   const handleDragStart = (e, pieceId, isFromGrid, gridIndex) => {
     e.dataTransfer.setData('pieceId', pieceId);
-    setDraggedPiece({ id: pieceId, source: isFromGrid ? 'grid' : 'tray', index: gridIndex });
   };
 
   const handleDrop = (e, dropIndex) => {
     e.preventDefault();
     const pieceId = parseInt(e.dataTransfer.getData('pieceId'));
     
-    // Simple mock logic: If dropping on an empty slot or swapping
-    // In a real app, you might want more complex swap/validation logic
     if (gridState[dropIndex] === null) {
       socket.emit('place_jigsaw_piece', {
         teamCode: teamState.code,
@@ -73,6 +89,7 @@ function JigsawFusion({ teamState, socket }) {
             className="jigsaw-slot"
             onDragOver={allowDrop}
             onDrop={(e) => handleDrop(e, index)}
+            onClick={() => handleSlotClick(index)}
           >
             {pieceId !== null && (
               <div 
@@ -100,9 +117,14 @@ function JigsawFusion({ teamState, socket }) {
               className="tray-piece"
               draggable={!teamState.completed}
               onDragStart={(e) => handleDragStart(e, pieceId, false, null)}
+              onClick={() => handlePieceClick(pieceId)}
               style={{
                 backgroundImage: 'url(/mosaic.png)',
-                backgroundPosition: getBackgroundPosition(pieceId)
+                backgroundPosition: getBackgroundPosition(pieceId),
+                border: selectedPiece === pieceId ? '3px solid var(--gold-accent)' : '1px solid rgba(255,255,255,0.2)',
+                transform: selectedPiece === pieceId ? 'scale(1.05)' : 'scale(1)',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
               }}
             />
           ))}

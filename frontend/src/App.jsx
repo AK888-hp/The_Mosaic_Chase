@@ -23,6 +23,28 @@ function App() {
       setTeamState(data);
     });
 
+    const savedCode = localStorage.getItem('teamCode');
+    const savedRole = localStorage.getItem('playerRole');
+    
+    if (savedCode && savedRole && !teamState) {
+      fetch(`${BACKEND_URL}/api/team/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: savedCode, playerRole: savedRole })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.error) {
+          setTeamState(data);
+          setPlayerRole(savedRole);
+          socket.emit('join_team_room', data.code);
+        } else {
+          localStorage.removeItem('teamCode');
+          localStorage.removeItem('playerRole');
+        }
+      }).catch(console.error);
+    }
+
     return () => {
       socket.off('team_update');
     };

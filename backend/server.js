@@ -59,23 +59,23 @@ const validateDijkstra = (path) => {
 };
 
 const validateWaterJug = (actions) => {
-  let j5 = 0, j3 = 0;
+  let j7 = 0, j4 = 0;
   for (let action of actions) {
-    if (action === 'fill5') j5 = 5;
-    else if (action === 'fill3') j3 = 3;
-    else if (action === 'empty5') j5 = 0;
-    else if (action === 'empty3') j3 = 0;
-    else if (action === 'pour5to3') {
-      let transfer = Math.min(j5, 3 - j3);
-      j5 -= transfer;
-      j3 += transfer;
-    } else if (action === 'pour3to5') {
-      let transfer = Math.min(j3, 5 - j5);
-      j3 -= transfer;
-      j5 += transfer;
+    if (action === 'fill7') j7 = 7;
+    else if (action === 'fill4') j4 = 4;
+    else if (action === 'empty7') j7 = 0;
+    else if (action === 'empty4') j4 = 0;
+    else if (action === 'pour7to4') {
+      let transfer = Math.min(j7, 4 - j4);
+      j7 -= transfer;
+      j4 += transfer;
+    } else if (action === 'pour4to7') {
+      let transfer = Math.min(j4, 7 - j7);
+      j4 -= transfer;
+      j7 += transfer;
     }
   }
-  return j5 === 4;
+  return j7 === 5;
 };
 
 const validateFuses = (actions) => {
@@ -86,9 +86,7 @@ const validateFuses = (actions) => {
 };
 
 const validateKnapsack = (selectedIds) => {
-  // Items: Eng(w:40, v:50), Med(w:30, v:40), Sec(w:50, v:60), Sci(w:20, v:30), Ops(w:10, v:20). Max W: 100
-  // Optimal is Sec, Med, Sci (w: 100, v: 130)
-  const optimal = ['Sec', 'Med', 'Sci'].sort();
+  const optimal = ['Commander', 'Medic', 'Navigator', 'Pilot'].sort();
   const selected = [...selectedIds].sort();
   if (optimal.length !== selected.length) return false;
   return optimal.every((val, index) => val === selected[index]);
@@ -112,14 +110,14 @@ io.on('connection', (socket) => {
         socket.emit('task_failed', { taskKey, message: 'Invalid payload format. Please refresh your page.' });
         return;
       }
-      
+
       let { data, movesCount } = payload;
       movesCount = movesCount || 0;
       const team = await Team.findOne({ code: teamCode });
       if (!team) return;
 
       let isValid = false;
-      
+
       if (realm === 'tech') {
         if (taskKey === 'task1') isValid = validateHanoi(data);
         if (taskKey === 'task2') isValid = validateNQueens(data);
@@ -135,7 +133,7 @@ io.on('connection', (socket) => {
         team.scores[realm][taskKey].points = movesCount;
         team.pieces[realm] += 6;
         await team.save();
-        
+
         socket.emit('task_success', { taskKey });
         io.to(teamCode).emit('team_update', team);
         io.to('admin_room').emit('admin_update');
@@ -154,18 +152,18 @@ io.on('connection', (socket) => {
       if (team) {
         if (!team.jigsawState) team.jigsawState = new Array(36).fill(null);
         team.jigsawState.set(index, pieceId);
-        
+
         let correctCount = 0;
         team.jigsawState.forEach((piece, i) => {
           if (piece === i) correctCount++;
         });
         team.scores.jigsaw = correctCount;
-        
+
         if (correctCount === 36 && !team.completed) {
           team.completed = true;
           team.endTime = new Date();
         }
-        
+
         await team.save();
         io.to(teamCode).emit('team_update', team);
         io.to('admin_room').emit('admin_update');
@@ -181,6 +179,6 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });

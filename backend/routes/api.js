@@ -13,7 +13,7 @@ router.post('/team/join', async (req, res) => {
       // Initialize jigsaw array with nulls
       team.jigsawState = new Array(36).fill(null);
     }
-    
+
     // Check role availability
     if (playerRole === 'player1') {
       if (team.players.player1) return res.status(400).json({ error: 'Player 1 (Tech) is already taken.' });
@@ -22,7 +22,7 @@ router.post('/team/join', async (req, res) => {
       if (team.players.player2) return res.status(400).json({ error: 'Player 2 (Aptitude) is already taken.' });
       team.players.player2 = 'joined';
     }
-    
+
     await team.save();
     res.json(team);
   } catch (error) {

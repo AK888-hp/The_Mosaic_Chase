@@ -33,6 +33,8 @@ function Landing({ setTeamState, setPlayerRole, socket }) {
 
       setTeamState(data);
       setPlayerRole(role);
+      localStorage.setItem('teamCode', data.code);
+      localStorage.setItem('playerRole', role);
       socket.emit('join_team_room', data.code);
       
       if (role === 'player1') {

@@ -41,24 +41,24 @@ function AptitudeRealm({ teamState, socket }) {
 
   // Task 1: Water Jug
   const [jugActions, setJugActions] = useState([]);
-  const [j5, setJ5] = useState(0);
-  const [j3, setJ3] = useState(0);
+  const [j7, setJ7] = useState(0);
+  const [j4, setJ4] = useState(0);
 
   const handleJug = (action) => {
     setJugActions([...jugActions, action]);
-    if (action === 'fill5') setJ5(5);
-    if (action === 'fill3') setJ3(3);
-    if (action === 'empty5') setJ5(0);
-    if (action === 'empty3') setJ3(0);
-    if (action === 'pour5to3') {
-      let transfer = Math.min(j5, 3 - j3);
-      setJ5(j5 - transfer);
-      setJ3(j3 + transfer);
+    if (action === 'fill7') setJ7(7);
+    if (action === 'fill4') setJ4(4);
+    if (action === 'empty7') setJ7(0);
+    if (action === 'empty4') setJ4(0);
+    if (action === 'pour7to4') {
+      let transfer = Math.min(j7, 4 - j4);
+      setJ7(j7 - transfer);
+      setJ4(j4 + transfer);
     }
-    if (action === 'pour3to5') {
-      let transfer = Math.min(j3, 5 - j5);
-      setJ3(j3 - transfer);
-      setJ5(j5 + transfer);
+    if (action === 'pour4to7') {
+      let transfer = Math.min(j4, 7 - j7);
+      setJ4(j4 - transfer);
+      setJ7(j7 + transfer);
     }
   };
 
@@ -72,7 +72,7 @@ function AptitudeRealm({ teamState, socket }) {
   };
 
   const resetJug = () => {
-    setJugActions([]); setJ5(0); setJ3(0);
+    setJugActions([]); setJ7(0); setJ4(0);
   };
 
   // Task 2: Fuses
@@ -90,11 +90,16 @@ function AptitudeRealm({ teamState, socket }) {
 
   // Task 3: Knapsack
   const crewOptions = [
-    { id: 'Eng', w: 40, v: 50 },
-    { id: 'Med', w: 30, v: 40 },
-    { id: 'Sec', w: 50, v: 60 },
-    { id: 'Sci', w: 20, v: 30 },
-    { id: 'Ops', w: 10, v: 20 }
+    { id: 'Commander', w: 25, v: 50 },
+    { id: 'Engineer', w: 40, v: 45 },
+    { id: 'Medic', w: 20, v: 40 },
+    { id: 'Security', w: 50, v: 60 },
+    { id: 'Scientist', w: 30, v: 35 },
+    { id: 'Operations', w: 15, v: 25 },
+    { id: 'Comms', w: 10, v: 15 },
+    { id: 'Pilot', w: 35, v: 55 },
+    { id: 'Navigator', w: 20, v: 30 },
+    { id: 'Gunner', w: 45, v: 50 }
   ];
   const [selectedCrew, setSelectedCrew] = useState([]);
   const [crewClicks, setCrewClicks] = useState(0);
@@ -153,24 +158,27 @@ function AptitudeRealm({ teamState, socket }) {
         {currentTask === 1 && !isTask1Done && (
           <div>
             <h3>Task 1: Preventing Core Meltdown</h3>
-            <p>Isolate exactly 4L of heavy water in the 5L container using only a 5L and 3L unmarked container and an infinite tap.</p>
+            <div style={{ padding: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', marginBottom: '20px', fontStyle: 'italic', lineHeight: '1.6' }}>
+              <p>You wake up to sirens screaming. The facility's backup cooling generator is dangerously overheating and will explode within minutes. The automatic systems are dead, requiring you to perform an immediate emergency fluid dump.</p>
+            </div>
+            <p>Isolate exactly 5L of heavy water in the 7L container using only a 7L and 4L unmarked container and an infinite tap.</p>
             <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', margin: '20px 0', alignItems: 'flex-end', height: '150px' }}>
               <div style={{ width: '80px', height: '120px', border: '3px solid var(--text-main)', borderTop: 'none', position: 'relative' }}>
-                <div style={{ position: 'absolute', bottom: '0', width: '100%', height: `${(j5/5)*100}%`, background: 'var(--danger)', transition: 'height 0.3s' }}></div>
-                <div style={{ position: 'absolute', bottom: '-25px', width: '100%', textAlign: 'center' }}>5L</div>
+                <div style={{ position: 'absolute', bottom: '0', width: '100%', height: `${(j7/7)*100}%`, background: 'var(--danger)', transition: 'height 0.3s' }}></div>
+                <div style={{ position: 'absolute', bottom: '-25px', width: '100%', textAlign: 'center' }}>7L</div>
               </div>
               <div style={{ width: '60px', height: '72px', border: '3px solid var(--text-main)', borderTop: 'none', position: 'relative' }}>
-                <div style={{ position: 'absolute', bottom: '0', width: '100%', height: `${(j3/3)*100}%`, background: 'var(--danger)', transition: 'height 0.3s' }}></div>
-                <div style={{ position: 'absolute', bottom: '-25px', width: '100%', textAlign: 'center' }}>3L</div>
+                <div style={{ position: 'absolute', bottom: '0', width: '100%', height: `${(j4/4)*100}%`, background: 'var(--danger)', transition: 'height 0.3s' }}></div>
+                <div style={{ position: 'absolute', bottom: '-25px', width: '100%', textAlign: 'center' }}>4L</div>
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '40px', marginBottom: '20px' }}>
-              <button className="btn-primary" onClick={() => handleJug('fill5')}>Fill 5L</button>
-              <button className="btn-primary" onClick={() => handleJug('fill3')}>Fill 3L</button>
-              <button className="btn-primary" onClick={() => handleJug('pour5to3')}>Pour 5L to 3L</button>
-              <button className="btn-primary" onClick={() => handleJug('pour3to5')}>Pour 3L to 5L</button>
-              <button className="btn-primary" onClick={() => handleJug('empty5')}>Empty 5L</button>
-              <button className="btn-primary" onClick={() => handleJug('empty3')}>Empty 3L</button>
+              <button className="btn-primary" onClick={() => handleJug('fill7')}>Fill 7L</button>
+              <button className="btn-primary" onClick={() => handleJug('fill4')}>Fill 4L</button>
+              <button className="btn-primary" onClick={() => handleJug('pour7to4')}>Pour 7L to 4L</button>
+              <button className="btn-primary" onClick={() => handleJug('pour4to7')}>Pour 4L to 7L</button>
+              <button className="btn-primary" onClick={() => handleJug('empty7')}>Empty 7L</button>
+              <button className="btn-primary" onClick={() => handleJug('empty4')}>Empty 4L</button>
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>
               <button className="btn-primary" onClick={resetJug} style={{ flex: 1, background: 'transparent', color: 'var(--gold-accent)' }}>Reset</button>
@@ -182,6 +190,9 @@ function AptitudeRealm({ teamState, socket }) {
         {currentTask === 2 && !isTask2Done && (
           <div>
             <h3>Task 2: Restoring Communications</h3>
+            <div style={{ padding: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', marginBottom: '20px', fontStyle: 'italic', lineHeight: '1.6' }}>
+              <p>The core is cooled, but the facility is plunged into complete isolation. The communications room is sealed shut by a safety lock, and the internal digital clocks are fried. To open the antennas and transmit an SOS signal to the outside world, you must track a precise operational window using archaic equipment.</p>
+            </div>
             <p>Use two uneven 60-minute fuses (A and B) to measure exactly 45 minutes.</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', margin: '20px 0' }}>
               {['light_a_both', 'light_b_one', 'wait_a', 'light_b_other', 'wait_b'].map(action => (
@@ -209,20 +220,23 @@ function AptitudeRealm({ teamState, socket }) {
         {currentTask === 3 && !isTask3Done && (
           <div>
             <h3>Task 3: The Evacuation Directive</h3>
+            <div style={{ padding: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', marginBottom: '20px', fontStyle: 'italic', lineHeight: '1.6' }}>
+              <p>The manual override succeeds, the SOS transmission goes out, and the main extraction lift powers up! However, toxic gas is now filling the ventilation system, structural damage is spreading, and the elevator has strict capacity safety parameters. You must choose the final rescue group.</p>
+            </div>
             <p>Select the optimal rescue group. Max Capacity: 100.</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', margin: '20px 0' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', margin: '20px 0' }}>
               {crewOptions.map(crew => (
                 <div 
                   key={crew.id} 
                   onClick={() => handleCrewClick(crew.id)}
                   style={{ 
-                    padding: '15px', border: '1px solid var(--gold-accent)', borderRadius: '4px', cursor: 'pointer',
+                    padding: '10px', border: '1px solid var(--gold-accent)', borderRadius: '4px', cursor: 'pointer',
                     background: selectedCrew.includes(crew.id) ? 'var(--gold-accent)' : 'transparent',
                     color: selectedCrew.includes(crew.id) ? '#000' : 'var(--text-main)',
-                    display: 'flex', justifyContent: 'space-between'
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center'
                   }}>
-                  <span>{crew.id}</span>
-                  <span>Weight: {crew.w} | Value: {crew.v}</span>
+                  <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{crew.id}</span>
+                  <span style={{ fontSize: '0.8rem' }}>W: {crew.w} | V: {crew.v}</span>
                 </div>
               ))}
             </div>
