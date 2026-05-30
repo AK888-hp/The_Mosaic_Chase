@@ -156,10 +156,12 @@ function AptitudeRealm({ teamState, socket }) {
 
   const handleWait = () => {
     setFuseClicks(p=>p+1);
-    let aRate = (aLitL ? 1 : 0) + (aLitR ? 1 : 0);
-    let bRate = (bLitL ? 1 : 0) + (bLitR ? 1 : 0);
+    let aRate = (aLitL && fuseAMins > 0 ? 1 : 0) + (aLitR && fuseAMins > 0 ? 1 : 0);
+    let bRate = (bLitL && fuseBMins > 0 ? 1 : 0) + (bLitR && fuseBMins > 0 ? 1 : 0);
     
-    let timeStep = 30;
+    if (aRate === 0 && bRate === 0) return; // Nothing is burning
+
+    let timeStep = 30; // Max time jump
     if (aRate > 0 && (fuseAMins / aRate) < timeStep) timeStep = fuseAMins / aRate;
     if (bRate > 0 && (fuseBMins / bRate) < timeStep) timeStep = fuseBMins / bRate;
     
