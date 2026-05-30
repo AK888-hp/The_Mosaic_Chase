@@ -4,7 +4,8 @@ const Team = require('../models/Team');
 
 // Join or Create a team
 router.post('/team/join', async (req, res) => {
-  const { code, playerRole, isRejoin } = req.body;
+  let { code, playerRole, isRejoin } = req.body;
+  if (code) code = code.trim().toLowerCase();
   try {
     let team = await Team.findOne({ code });
     if (!team) {
