@@ -26,7 +26,7 @@ mongoose.connect(process.env.MONGO_URI)
 
 // Game Validation Logic
 const validateHanoi = (moves) => {
-  let pegs = [[1, 2, 3], [], []];
+  let pegs = [[1, 2, 3, 4, 5, 6], [], []];
   for (let move of moves) {
     const { from, to } = move;
     if (pegs[from].length === 0) return false;
@@ -35,7 +35,7 @@ const validateHanoi = (moves) => {
     pegs[from].shift();
     pegs[to].unshift(disc);
   }
-  return pegs[2].length === 3 && pegs[2][0] === 1; // Solved
+  return pegs[2].length === 6 && pegs[2][0] === 1; // Solved
 };
 
 const validateNQueens = (queens) => {
@@ -131,6 +131,7 @@ io.on('connection', (socket) => {
       if (isValid) {
         team.scores[realm][taskKey].completed = true;
         team.scores[realm][taskKey].points = movesCount;
+        team.totalScore += movesCount; // Add to running total score
         team.pieces[realm] += 6;
         await team.save();
 
@@ -149,8 +150,18 @@ io.on('connection', (socket) => {
     const { teamCode, index, pieceId } = data;
     try {
       const team = await Team.findOne({ code: teamCode });
-      if (team) {
+      if (team && !team.completed) {
         if (!team.jigsawState) team.jigsawState = new Array(36).fill(null);
+        
+        team.jigsawClicks += 1; // Track clicks
+
+        // Prevent piece duplication by clearing its old position if it existed
+        const oldIndex = team.jigsawState.findIndex(p => p === pieceId);
+        if (oldIndex > -1) {
+          team.jigsawState.set(oldIndex, null);
+        }
+        
+        // Place in new position
         team.jigsawState.set(index, pieceId);
 
         let correctCount = 0;
@@ -162,6 +173,10 @@ io.on('connection', (socket) => {
         if (correctCount === 36 && !team.completed) {
           team.completed = true;
           team.endTime = new Date();
+          
+          // Final Score calculation: sum of all moves/clicks + time in seconds
+          const timeInSecs = Math.floor((team.endTime - team.startTime) / 1000);
+          team.totalScore += team.jigsawClicks + timeInSecs;
         }
 
         await team.save();

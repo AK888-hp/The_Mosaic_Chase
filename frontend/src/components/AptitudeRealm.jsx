@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import RewardOverlay from './RewardOverlay';
 
 function AptitudeRealm({ teamState, socket }) {
   const navigate = useNavigate();
@@ -15,6 +16,9 @@ function AptitudeRealm({ teamState, socket }) {
   const [currentTask, setCurrentTask] = useState(1);
   const [errorMsg, setErrorMsg] = useState('');
 
+  const [showReward, setShowReward] = useState(false);
+  const [nextTaskToAdvance, setNextTaskToAdvance] = useState(null);
+
   useEffect(() => {
     if (isTask1Done && !isTask2Done) setCurrentTask(2);
     if (isTask2Done && !isTask3Done) setCurrentTask(3);
@@ -22,22 +26,30 @@ function AptitudeRealm({ teamState, socket }) {
   }, [isTask1Done, isTask2Done, isTask3Done]);
 
   useEffect(() => {
-    socket.on('task_success', ({ taskKey }) => {
+    const handleSuccess = ({ taskKey }) => {
       setErrorMsg('');
-      if (taskKey === 'task1') setCurrentTask(2);
-      if (taskKey === 'task2') setCurrentTask(3);
-      if (taskKey === 'task3') setCurrentTask(4);
-    });
+      setShowReward(true);
+      if (taskKey === 'task1') setNextTaskToAdvance(2);
+      if (taskKey === 'task2') setNextTaskToAdvance(3);
+      if (taskKey === 'task3') setNextTaskToAdvance(4);
+    };
 
-    socket.on('task_failed', ({ message }) => {
-      setErrorMsg(message);
-    });
+    socket.on('task_success', handleSuccess);
+    socket.on('task_failed', ({ message }) => setErrorMsg(message));
 
     return () => {
-      socket.off('task_success');
+      socket.off('task_success', handleSuccess);
       socket.off('task_failed');
     };
   }, [socket]);
+
+  const handleRewardComplete = () => {
+    setShowReward(false);
+    if (nextTaskToAdvance) {
+      setCurrentTask(nextTaskToAdvance);
+      setNextTaskToAdvance(null);
+    }
+  };
 
   // Task 1: Water Jug
   const [jugActions, setJugActions] = useState([]);
@@ -90,16 +102,9 @@ function AptitudeRealm({ teamState, socket }) {
 
   // Task 3: Knapsack
   const crewOptions = [
-    { id: 'Commander', w: 25, v: 50 },
-    { id: 'Engineer', w: 40, v: 45 },
-    { id: 'Medic', w: 20, v: 40 },
-    { id: 'Security', w: 50, v: 60 },
-    { id: 'Scientist', w: 30, v: 35 },
-    { id: 'Operations', w: 15, v: 25 },
-    { id: 'Comms', w: 10, v: 15 },
-    { id: 'Pilot', w: 35, v: 55 },
-    { id: 'Navigator', w: 20, v: 30 },
-    { id: 'Gunner', w: 45, v: 50 }
+    { id: 'Commander', w: 25, v: 50 }, { id: 'Engineer', w: 40, v: 45 }, { id: 'Medic', w: 20, v: 40 },
+    { id: 'Security', w: 50, v: 60 }, { id: 'Scientist', w: 30, v: 35 }, { id: 'Operations', w: 15, v: 25 },
+    { id: 'Comms', w: 10, v: 15 }, { id: 'Pilot', w: 35, v: 55 }, { id: 'Navigator', w: 20, v: 30 }, { id: 'Gunner', w: 45, v: 50 }
   ];
   const [selectedCrew, setSelectedCrew] = useState([]);
   const [crewClicks, setCrewClicks] = useState(0);
@@ -151,133 +156,148 @@ function AptitudeRealm({ teamState, socket }) {
   if (!teamState) {
     return (
       <div style={{ textAlign: 'center', marginTop: '50px' }}>
-        <h3>Loading game data...</h3>
-        <p style={{ opacity: 0.7 }}>(This may take up to a minute if the server is waking up)</p>
+        <h3>Loading terminal...</h3>
       </div>
     );
   }
 
   return (
-    <div className="wood-card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2>Aptitude Realm</h2>
-        <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--gold-accent)' }}>
-          ⏱ {formatTime(elapsed)}
+    <>
+      <RewardOverlay isVisible={showReward} onComplete={handleRewardComplete} piecesEarned={6} />
+
+      <div className="wood-card" style={{ maxWidth: '800px', backgroundColor: '#1e1e1e', border: '2px solid #555' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #333', paddingBottom: '10px', marginBottom: '20px' }}>
+          <h2 style={{ fontFamily: 'monospace', color: '#fff' }}>Survival Outpost (Logic)</h2>
+          <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--danger)', fontFamily: 'monospace' }}>
+            TIME: {formatTime(elapsed)}
+          </div>
+        </div>
+
+        {errorMsg && <div style={{ background: 'rgba(255,0,0,0.2)', border: '1px solid red', color: '#ff5252', padding: '10px', marginBottom: '15px', fontFamily: 'monospace', fontWeight: 'bold' }}>[ERR]: {errorMsg}</div>}
+
+        <div style={{ marginTop: '20px', fontFamily: 'monospace' }}>
+          {currentTask === 1 && !isTask1Done && (
+            <div>
+              <h3 style={{ color: '#ffb74d' }}>CRITICAL: Core Meltdown Imminent</h3>
+              <div style={{ padding: '15px', background: '#2c2c2c', borderLeft: '4px solid #ffb74d', marginBottom: '20px', lineHeight: '1.6' }}>
+                <p>The facility's backup cooling generator is dangerously overheating. Perform an emergency fluid dump immediately.</p>
+                <p><strong>Directive:</strong> Isolate exactly 5L of heavy water in the 7L container using only a 7L and 4L unmarked container.</p>
+              </div>
+              
+              <div style={{ display: 'flex', gap: '40px', justifyContent: 'center', margin: '30px 0', alignItems: 'flex-end', height: '180px' }}>
+                <div style={{ width: '90px', height: '140px', border: '4px solid #888', borderTop: 'none', position: 'relative', background: '#111' }}>
+                  <div style={{ position: 'absolute', bottom: '0', width: '100%', height: `${(j7/7)*100}%`, background: 'rgba(33, 150, 243, 0.8)', transition: 'height 0.4s ease-out' }}></div>
+                  <div style={{ position: 'absolute', bottom: '-30px', width: '100%', textAlign: 'center', color: '#aaa' }}>7L TANK</div>
+                </div>
+                <div style={{ width: '70px', height: '80px', border: '4px solid #888', borderTop: 'none', position: 'relative', background: '#111' }}>
+                  <div style={{ position: 'absolute', bottom: '0', width: '100%', height: `${(j4/4)*100}%`, background: 'rgba(33, 150, 243, 0.8)', transition: 'height 0.4s ease-out' }}></div>
+                  <div style={{ position: 'absolute', bottom: '-30px', width: '100%', textAlign: 'center', color: '#aaa' }}>4L TANK</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '50px', marginBottom: '20px' }}>
+                <button className="btn-primary" style={{ background: '#37474f' }} onClick={() => handleJug('fill7')}>Fill 7L</button>
+                <button className="btn-primary" style={{ background: '#37474f' }} onClick={() => handleJug('fill4')}>Fill 4L</button>
+                <button className="btn-primary" style={{ background: '#37474f' }} onClick={() => handleJug('pour7to4')}>Pour 7L → 4L</button>
+                <button className="btn-primary" style={{ background: '#37474f' }} onClick={() => handleJug('pour4to7')}>Pour 4L → 7L</button>
+                <button className="btn-primary" style={{ background: '#37474f' }} onClick={() => handleJug('empty7')}>Purge 7L</button>
+                <button className="btn-primary" style={{ background: '#37474f' }} onClick={() => handleJug('empty4')}>Purge 4L</button>
+              </div>
+              <p style={{ textAlign: 'center', fontSize: '1.2rem', margin: '15px 0', color: '#aaa' }}>Moves Registered: <strong>{jugActions.length}</strong></p>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button className="btn-primary" onClick={resetJug} style={{ flex: 1, background: '#222', color: '#ffb74d' }}>RESET</button>
+                <button className="btn-primary" onClick={submitWaterJug} style={{ flex: 2, background: '#ffb74d', color: '#000' }}>EXECUTE DUMP PROTOCOL</button>
+              </div>
+            </div>
+          )}
+
+          {currentTask === 2 && !isTask2Done && (
+            <div>
+              <h3 style={{ color: '#ffb74d' }}>OFFLINE: Restoring Communications</h3>
+              <div style={{ padding: '15px', background: '#2c2c2c', borderLeft: '4px solid #ffb74d', marginBottom: '20px', lineHeight: '1.6' }}>
+                <p>The facility is in total isolation. The internal digital clocks are fried. To open the antennas and transmit an SOS signal, track a precise operational window.</p>
+                <p><strong>Directive:</strong> Use two uneven 60-minute fuses (A and B) to measure exactly 45 minutes.</p>
+              </div>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', margin: '30px 0' }}>
+                {['light_a_both', 'light_b_one', 'wait_a', 'light_b_other', 'wait_b'].map(action => (
+                  <button 
+                    key={action}
+                    className="btn-primary" 
+                    style={{ background: fuseActions.includes(action) ? '#ffb74d' : '#37474f', color: fuseActions.includes(action) ? '#000' : '#fff', border: '1px solid #555' }}
+                    onClick={() => {
+                      setFuseClicks(prev => prev + 1);
+                      if(fuseActions.includes(action)) setFuseActions(fuseActions.filter(a => a !== action));
+                      else setFuseActions([...fuseActions, action]);
+                    }}>
+                    &gt; {action.replace(/_/g, ' ').toUpperCase()}
+                  </button>
+                ))}
+              </div>
+              <p style={{ color: '#aaa' }}>Buffer: [ {fuseActions.join(' ] -> [ ')} ]</p>
+              <p style={{ textAlign: 'center', fontSize: '1.2rem', margin: '15px 0', color: '#aaa' }}>Clicks Registered: <strong>{fuseClicks}</strong></p>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button className="btn-primary" onClick={() => setFuseActions([])} style={{ flex: 1, background: '#222', color: '#ffb74d' }}>CLEAR BUFFER</button>
+                <button className="btn-primary" onClick={submitFuses} style={{ flex: 2, background: '#ffb74d', color: '#000' }}>TRANSMIT SIGNAL</button>
+              </div>
+            </div>
+          )}
+
+          {currentTask === 3 && !isTask3Done && (
+            <div>
+              <h3 style={{ color: '#ffb74d' }}>ALERT: The Evacuation Directive</h3>
+              <div style={{ padding: '15px', background: '#2c2c2c', borderLeft: '4px solid #ffb74d', marginBottom: '20px', lineHeight: '1.6' }}>
+                <p>Toxic gas is filling the vents and the extraction lift is online. The elevator has strict capacity safety parameters.</p>
+                <p><strong>Directive:</strong> Select the optimal rescue group without exceeding a maximum weight capacity of 100.</p>
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', margin: '30px 0' }}>
+                {crewOptions.map(crew => (
+                  <div 
+                    key={crew.id} 
+                    onClick={() => handleCrewClick(crew.id)}
+                    style={{ 
+                      padding: '15px', border: '2px solid', borderRadius: '4px', cursor: 'pointer',
+                      borderColor: selectedCrew.includes(crew.id) ? '#ffb74d' : '#555',
+                      background: selectedCrew.includes(crew.id) ? 'rgba(255, 183, 77, 0.2)' : '#222',
+                      color: selectedCrew.includes(crew.id) ? '#ffb74d' : '#ccc',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+                      transition: 'all 0.2s'
+                    }}>
+                    <span style={{ fontWeight: 'bold', fontSize: '1.1rem', marginBottom: '5px' }}>{crew.id}</span>
+                    <span style={{ fontSize: '0.9rem', color: '#888' }}>Weight: {crew.w} | Value: {crew.v}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ background: '#111', padding: '15px', border: `2px solid ${currentWeight > 100 ? '#ff5252' : '#66BB6A'}`, marginBottom: '20px', textAlign: 'center' }}>
+                <span style={{ fontSize: '1.2rem', color: currentWeight > 100 ? '#ff5252' : '#66BB6A' }}>LOAD CAPACITY: {currentWeight} / 100</span>
+              </div>
+              
+              <p style={{ textAlign: 'center', fontSize: '1.2rem', margin: '15px 0', color: '#aaa' }}>Clicks Registered: <strong>{crewClicks}</strong></p>
+              <button className="btn-primary" onClick={submitKnapsack} style={{ width: '100%', background: '#ffb74d', color: '#000', fontSize: '1.2rem', padding: '15px' }}>AUTHORIZE MANIFEST</button>
+            </div>
+          )}
+
+          {currentTask === 4 && (
+            <div style={{ textAlign: 'center', marginTop: '40px' }}>
+              <h3 style={{ color: 'var(--success)', fontSize: '2rem' }}>Outpost Secured!</h3>
+              {!isTechDone ? (
+                <div style={{ marginTop: '20px', padding: '25px', background: '#2c2c2c', borderRadius: '8px', borderLeft: '4px solid #66BB6A' }}>
+                  <p style={{ color: '#aaa', fontSize: '1.1rem' }}>Standby... Awaiting Player 1 to breach the Cybernetic Grid (Tech).</p>
+                  <div style={{ marginTop: '20px', border: '4px solid #444', borderTop: '4px solid #66BB6A', borderRadius: '50%', width: '40px', height: '40px', animation: 'spin 1s linear infinite', margin: '0 auto' }} />
+                  <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+                </div>
+              ) : (
+                <button className="btn-primary" onClick={() => navigate('/fusion')} style={{ width: '100%', marginTop: '30px', padding: '20px', fontSize: '1.5rem', background: '#66BB6A', color: '#000', border: 'none', boxShadow: '0 0 15px rgba(102, 187, 106, 0.5)' }}>
+                  INITIATE JIGSAW FUSION
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
-      {errorMsg && <div style={{ color: 'var(--danger)', marginBottom: '15px', fontWeight: 'bold' }}>{errorMsg}</div>}
-
-      <div style={{ marginTop: '20px' }}>
-        {currentTask === 1 && !isTask1Done && (
-          <div>
-            <h3>Task 1: Preventing Core Meltdown</h3>
-            <div style={{ padding: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', marginBottom: '20px', fontStyle: 'italic', lineHeight: '1.6' }}>
-              <p>You wake up to sirens screaming. The facility's backup cooling generator is dangerously overheating and will explode within minutes. The automatic systems are dead, requiring you to perform an immediate emergency fluid dump.</p>
-            </div>
-            <p>Isolate exactly 5L of heavy water in the 7L container using only a 7L and 4L unmarked container and an infinite tap.</p>
-            <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', margin: '20px 0', alignItems: 'flex-end', height: '150px' }}>
-              <div style={{ width: '80px', height: '120px', border: '3px solid var(--text-main)', borderTop: 'none', position: 'relative' }}>
-                <div style={{ position: 'absolute', bottom: '0', width: '100%', height: `${(j7/7)*100}%`, background: 'var(--danger)', transition: 'height 0.3s' }}></div>
-                <div style={{ position: 'absolute', bottom: '-25px', width: '100%', textAlign: 'center' }}>7L</div>
-              </div>
-              <div style={{ width: '60px', height: '72px', border: '3px solid var(--text-main)', borderTop: 'none', position: 'relative' }}>
-                <div style={{ position: 'absolute', bottom: '0', width: '100%', height: `${(j4/4)*100}%`, background: 'var(--danger)', transition: 'height 0.3s' }}></div>
-                <div style={{ position: 'absolute', bottom: '-25px', width: '100%', textAlign: 'center' }}>4L</div>
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '40px', marginBottom: '20px' }}>
-              <button className="btn-primary" onClick={() => handleJug('fill7')}>Fill 7L</button>
-              <button className="btn-primary" onClick={() => handleJug('fill4')}>Fill 4L</button>
-              <button className="btn-primary" onClick={() => handleJug('pour7to4')}>Pour 7L to 4L</button>
-              <button className="btn-primary" onClick={() => handleJug('pour4to7')}>Pour 4L to 7L</button>
-              <button className="btn-primary" onClick={() => handleJug('empty7')}>Empty 7L</button>
-              <button className="btn-primary" onClick={() => handleJug('empty4')}>Empty 4L</button>
-            </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button className="btn-primary" onClick={resetJug} style={{ flex: 1, background: 'transparent', color: 'var(--gold-accent)' }}>Reset</button>
-              <button className="btn-primary" onClick={submitWaterJug} style={{ flex: 2 }}>Submit Logic</button>
-            </div>
-          </div>
-        )}
-
-        {currentTask === 2 && !isTask2Done && (
-          <div>
-            <h3>Task 2: Restoring Communications</h3>
-            <div style={{ padding: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', marginBottom: '20px', fontStyle: 'italic', lineHeight: '1.6' }}>
-              <p>The core is cooled, but the facility is plunged into complete isolation. The communications room is sealed shut by a safety lock, and the internal digital clocks are fried. To open the antennas and transmit an SOS signal to the outside world, you must track a precise operational window using archaic equipment.</p>
-            </div>
-            <p>Use two uneven 60-minute fuses (A and B) to measure exactly 45 minutes.</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', margin: '20px 0' }}>
-              {['light_a_both', 'light_b_one', 'wait_a', 'light_b_other', 'wait_b'].map(action => (
-                <button 
-                  key={action}
-                  className="btn-primary" 
-                  style={{ background: fuseActions.includes(action) ? 'var(--gold-accent)' : '', color: fuseActions.includes(action) ? '#000' : '' }}
-                  onClick={() => {
-                    setFuseClicks(prev => prev + 1);
-                    if(fuseActions.includes(action)) setFuseActions(fuseActions.filter(a => a !== action));
-                    else setFuseActions([...fuseActions, action]);
-                  }}>
-                  {action.replace(/_/g, ' ').toUpperCase()}
-                </button>
-              ))}
-            </div>
-            <p>Selected Sequence: {fuseActions.join(' ➔ ')}</p>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button className="btn-primary" onClick={() => setFuseActions([])} style={{ flex: 1, background: 'transparent', color: 'var(--gold-accent)' }}>Clear</button>
-              <button className="btn-primary" onClick={submitFuses} style={{ flex: 2 }}>Submit Sequence</button>
-            </div>
-          </div>
-        )}
-
-        {currentTask === 3 && !isTask3Done && (
-          <div>
-            <h3>Task 3: The Evacuation Directive</h3>
-            <div style={{ padding: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', marginBottom: '20px', fontStyle: 'italic', lineHeight: '1.6' }}>
-              <p>The manual override succeeds, the SOS transmission goes out, and the main extraction lift powers up! However, toxic gas is now filling the ventilation system, structural damage is spreading, and the elevator has strict capacity safety parameters. You must choose the final rescue group.</p>
-            </div>
-            <p>Select the optimal rescue group. Max Capacity: 100.</p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', margin: '20px 0' }}>
-              {crewOptions.map(crew => (
-                <div 
-                  key={crew.id} 
-                  onClick={() => handleCrewClick(crew.id)}
-                  style={{ 
-                    padding: '10px', border: '1px solid var(--gold-accent)', borderRadius: '4px', cursor: 'pointer',
-                    background: selectedCrew.includes(crew.id) ? 'var(--gold-accent)' : 'transparent',
-                    color: selectedCrew.includes(crew.id) ? '#000' : 'var(--text-main)',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center'
-                  }}>
-                  <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{crew.id}</span>
-                  <span style={{ fontSize: '0.8rem' }}>W: {crew.w} | V: {crew.v}</span>
-                </div>
-              ))}
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', fontWeight: 'bold', color: currentWeight > 100 ? 'var(--danger)' : 'var(--success)' }}>
-              <span>Total Weight: {currentWeight} / 100</span>
-            </div>
-            <button className="btn-primary" onClick={submitKnapsack} style={{ width: '100%' }}>Finalize Manifest</button>
-          </div>
-        )}
-
-        {currentTask === 4 && (
-          <div style={{ textAlign: 'center', marginTop: '30px' }}>
-            <h3 style={{ color: 'var(--success)' }}>Aptitude Realm Secure!</h3>
-            {!isTechDone ? (
-              <div style={{ marginTop: '20px', padding: '15px', background: 'rgba(0,0,0,0.3)', borderRadius: '8px' }}>
-                <p>Waiting for Player 1 to secure the Tech Realm...</p>
-                <div className="spinner" style={{ border: '4px solid #f3f3f3', borderTop: '4px solid var(--gold-accent)', borderRadius: '50%', width: '30px', height: '30px', animation: 'spin 1s linear infinite', margin: '0 auto' }} />
-                <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-              </div>
-            ) : (
-              <button className="btn-primary" onClick={() => navigate('/fusion')} style={{ width: '100%', marginTop: '20px', padding: '20px', fontSize: '1.2rem' }}>
-                INITIATE JIGSAW FUSION
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
+    </>
   );
 }
 

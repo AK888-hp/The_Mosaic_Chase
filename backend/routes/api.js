@@ -47,7 +47,7 @@ router.post('/admin/login', (req, res) => {
 router.get('/admin/teams', async (req, res) => {
   // Normally verify token here
   try {
-    const teams = await Team.find().sort({ totalScore: -1, startTime: 1 });
+    const teams = await Team.find().sort({ totalScore: 1, startTime: 1 });
     res.json(teams);
   } catch (error) {
     res.status(500).json({ error: 'Server error' });

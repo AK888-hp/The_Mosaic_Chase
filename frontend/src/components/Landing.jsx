@@ -37,11 +37,7 @@ function Landing({ setTeamState, setPlayerRole, socket }) {
       localStorage.setItem('playerRole', role);
       socket.emit('join_team_room', data.code);
       
-      if (role === 'player1') {
-        navigate('/realm/tech');
-      } else {
-        navigate('/realm/aptitude');
-      }
+      navigate('/storyline');
 
     } catch (err) {
       setError('Failed to connect to the server.');
@@ -72,11 +68,11 @@ function Landing({ setTeamState, setPlayerRole, socket }) {
           onChange={(e) => setRole(e.target.value)}
         >
           <option value="">Select Your Realm</option>
-          <option value="player1">Player 1: Technology Realm</option>
-          <option value="player2">Player 2: Aptitude Realm</option>
+          <option value="player1">Player 1: Cybernetic Grid (Tech)</option>
+          <option value="player2">Player 2: Survival Outpost (Logic)</option>
         </select>
         
-        <button type="submit" className="btn-primary">Initiate Sequence</button>
+        <button type="submit" className="btn-primary">Start</button>
       </form>
     </div>
   );

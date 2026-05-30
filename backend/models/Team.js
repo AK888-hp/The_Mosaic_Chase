@@ -26,29 +26,9 @@ const teamSchema = new mongoose.Schema({
   jigsawState: { type: Array, default: [] }, // Array representing the 6x6 grid state
   startTime: { type: Date, default: null },
   endTime: { type: Date, default: null },
-  completed: { type: Boolean, default: false }
+  completed: { type: Boolean, default: false },
+  totalScore: { type: Number, default: 0 },
+  jigsawClicks: { type: Number, default: 0 }
 });
-
-// Calculate total score dynamically (Lower is better)
-teamSchema.virtual('totalScore').get(function() {
-  let totalMoves = 0;
-  ['tech', 'aptitude'].forEach(realm => {
-    ['task1', 'task2', 'task3'].forEach(task => {
-      totalMoves += this.scores[realm][task].points; // Points now store move count
-    });
-  });
-  
-  let timeInSeconds = 0;
-  if (this.startTime) {
-    const end = this.endTime || new Date();
-    timeInSeconds = Math.floor((end - this.startTime) / 1000);
-  }
-  
-  // Total Score: Total Moves + Time elapsed. (Lower is better)
-  return totalMoves + timeInSeconds;
-});
-
-teamSchema.set('toJSON', { virtuals: true });
-teamSchema.set('toObject', { virtuals: true });
 
 module.exports = mongoose.model('Team', teamSchema);
