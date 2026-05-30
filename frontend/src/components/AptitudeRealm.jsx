@@ -62,7 +62,7 @@ function AptitudeRealm({ teamState, socket }) {
   const [jugHistory, setJugHistory] = useState([{ j7: 0, j4: 0 }]);
   const [j7, setJ7] = useState(0);
   const [j4, setJ4] = useState(0);
-  const [selectedJug, setSelectedJug] = useState(null);
+  const [activeMenu, setActiveMenu] = useState(null); // 7 or 4
 
   const applyJugAction = (action) => {
     setJugActions(prev => [...prev, action]);
@@ -89,16 +89,6 @@ function AptitudeRealm({ teamState, socket }) {
     setJugHistory([...jugHistory, { j7: new7, j4: new4 }]);
   };
 
-  const handleJugClick = (jug) => {
-    if (selectedJug === null) {
-      setSelectedJug(jug); // Select first jug
-    } else {
-      if (selectedJug === 7 && jug === 4) applyJugAction('pour7to4');
-      if (selectedJug === 4 && jug === 7) applyJugAction('pour4to7');
-      setSelectedJug(null);
-    }
-  };
-
   const undoJug = () => {
     if (jugActions.length > 0) {
       setJugActions(jugActions.slice(0, -1));
@@ -108,11 +98,11 @@ function AptitudeRealm({ teamState, socket }) {
       setJ7(lastState.j7);
       setJ4(lastState.j4);
     }
-    setSelectedJug(null);
+    setActiveMenu(null);
   };
 
   const resetJug = () => {
-    setJugActions([]); setJugHistory([{ j7: 0, j4: 0 }]); setJ7(0); setJ4(0); setSelectedJug(null);
+    setJugActions([]); setJugHistory([{ j7: 0, j4: 0 }]); setJ7(0); setJ4(0); setActiveMenu(null);
   };
 
   const submitWaterJug = () => {
@@ -122,36 +112,90 @@ function AptitudeRealm({ teamState, socket }) {
     });
   };
 
-  // Task 2: Fuses
-  const [fuseActions, setFuseActions] = useState([]);
-  const [fuseClicks, setFuseClicks] = useState(0);
+  const renderJugMenu = (jugCapacity) => {
+    if (activeMenu !== jugCapacity) return null;
+    const currentVol = jugCapacity === 7 ? j7 : j4;
+    const otherCap = jugCapacity === 7 ? 4 : 7;
+    const otherVol = jugCapacity === 7 ? j4 : j7;
+    
+    return (
+      <div style={{ position: 'absolute', bottom: '20%', left: '105%', background: '#333', padding: '10px', borderRadius: '8px', zIndex: 10, display: 'flex', flexDirection: 'column', gap: '5px', border: '1px solid #555', width: '120px' }}>
+        <button className="btn-primary" style={{ padding: '5px', fontSize: '0.8rem', background: '#37474f', opacity: currentVol === jugCapacity ? 0.5 : 1 }} disabled={currentVol === jugCapacity} onClick={(e) => { e.stopPropagation(); applyJugAction(`fill${jugCapacity}`); setActiveMenu(null); }}>Fill</button>
+        <button className="btn-primary" style={{ padding: '5px', fontSize: '0.8rem', background: '#37474f', opacity: currentVol === 0 ? 0.5 : 1 }} disabled={currentVol === 0} onClick={(e) => { e.stopPropagation(); applyJugAction(`empty${jugCapacity}`); setActiveMenu(null); }}>Empty</button>
+        <button className="btn-primary" style={{ padding: '5px', fontSize: '0.8rem', background: '#37474f', opacity: (currentVol === 0 || otherVol === otherCap) ? 0.5 : 1 }} disabled={currentVol === 0 || otherVol === otherCap} onClick={(e) => { e.stopPropagation(); applyJugAction(`pour${jugCapacity}to${otherCap}`); setActiveMenu(null); }}>Pour to {otherCap}L</button>
+      </div>
+    );
+  };
 
-  // Fuse visuals state derived from actions
-  let fuseALength = 100, fuseBLength = 100;
-  let aLitBoth = false, bLitOne = false, bLitOther = false;
-  fuseActions.forEach(action => {
-    if (action === 'light_a_both') aLitBoth = true;
-    if (action === 'light_b_one') bLitOne = true;
-    if (action === 'wait_a') {
-      if (aLitBoth) fuseALength = 0;
-      if (bLitOne) fuseBLength -= 50;
-    }
-    if (action === 'light_b_other') bLitOther = true;
-    if (action === 'wait_b') {
-      if (bLitOne && bLitOther) fuseBLength = 0;
-    }
-  });
+  // Task 2: Fuses
+  const [fuseAMins, setFuseAMins] = useState(60);
+  const [fuseBMins, setFuseBMins] = useState(60);
+  const [aLitL, setALitL] = useState(false);
+  const [aLitR, setALitR] = useState(false);
+  const [bLitL, setBLitL] = useState(false);
+  const [bLitR, setBLitR] = useState(false);
+  const [totalTime, setTotalTime] = useState(0);
+  const [fuseClicks, setFuseClicks] = useState(0);
+  const [fuseHistory, setFuseHistory] = useState([{ aMins: 60, bMins: 60, aL: false, aR: false, bL: false, bR: false, time: 0 }]);
+
+  const recordFuseHistory = (aM, bM, aL, aR, bL, bR, t) => {
+    setFuseHistory([...fuseHistory, { aMins: aM, bMins: bM, aL, aR, bL, bR, time: t }]);
+  };
+
+  const toggleFuse = (fuse, end) => {
+    setFuseClicks(p=>p+1);
+    let nAL = aLitL, nAR = aLitR, nBL = bLitL, nBR = bLitR;
+    if (fuse === 'A' && end === 'L' && fuseAMins > 0) nAL = true;
+    if (fuse === 'A' && end === 'R' && fuseAMins > 0) nAR = true;
+    if (fuse === 'B' && end === 'L' && fuseBMins > 0) nBL = true;
+    if (fuse === 'B' && end === 'R' && fuseBMins > 0) nBR = true;
+    
+    setALitL(nAL); setALitR(nAR); setBLitL(nBL); setBLitR(nBR);
+    recordFuseHistory(fuseAMins, fuseBMins, nAL, nAR, nBL, nBR, totalTime);
+  };
+
+  const handleWait = () => {
+    setFuseClicks(p=>p+1);
+    let aRate = (aLitL ? 1 : 0) + (aLitR ? 1 : 0);
+    let bRate = (bLitL ? 1 : 0) + (bLitR ? 1 : 0);
+    
+    let timeStep = 30;
+    if (aRate > 0 && (fuseAMins / aRate) < timeStep) timeStep = fuseAMins / aRate;
+    if (bRate > 0 && (fuseBMins / bRate) < timeStep) timeStep = fuseBMins / bRate;
+    
+    if (timeStep === 0) return;
+
+    const nAMins = Math.max(0, fuseAMins - (timeStep * aRate));
+    const nBMins = Math.max(0, fuseBMins - (timeStep * bRate));
+    const nTime = totalTime + timeStep;
+    
+    setFuseAMins(nAMins);
+    setFuseBMins(nBMins);
+    setTotalTime(nTime);
+    recordFuseHistory(nAMins, nBMins, aLitL, aLitR, bLitL, bLitR, nTime);
+  };
 
   const undoFuses = () => {
-    if (fuseActions.length > 0) setFuseActions(fuseActions.slice(0, -1));
+    if (fuseHistory.length > 1) {
+      const newHist = fuseHistory.slice(0, -1);
+      setFuseHistory(newHist);
+      const last = newHist[newHist.length - 1];
+      setFuseAMins(last.aMins); setFuseBMins(last.bMins);
+      setALitL(last.aL); setALitR(last.aR); setBLitL(last.bL); setBLitR(last.bR);
+      setTotalTime(last.time);
+    }
   };
   
-  const resetFuses = () => setFuseActions([]);
+  const resetFuses = () => {
+    setFuseAMins(60); setFuseBMins(60);
+    setALitL(false); setALitR(false); setBLitL(false); setBLitR(false);
+    setTotalTime(0); setFuseHistory([{ aMins: 60, bMins: 60, aL: false, aR: false, bL: false, bR: false, time: 0 }]);
+  };
 
   const submitFuses = () => {
     socket.emit('submit_task', { 
       teamCode: teamState.code, realm: 'aptitude', taskKey: 'task2', 
-      payload: { data: fuseActions, movesCount: fuseClicks } 
+      payload: { data: totalTime, movesCount: fuseClicks } 
     });
   };
 
@@ -236,28 +280,26 @@ function AptitudeRealm({ teamState, socket }) {
             <div>
               <h3 style={{ color: '#ffb74d' }}>CRITICAL: Core Meltdown Imminent</h3>
               <div style={{ padding: '15px', background: '#2c2c2c', borderLeft: '4px solid #ffb74d', marginBottom: '20px', lineHeight: '1.6' }}>
-                <p><strong>Directive:</strong> Isolate exactly 5L of heavy water in the 7L container. Tap the Source to fill, Drain to empty, and tap between containers to pour.</p>
+                <p><strong>Directive:</strong> Isolate exactly 5L of heavy water in the 7L container. Tap a container to open its physical interaction menu.</p>
               </div>
               
-              <div style={{ display: 'flex', gap: '30px', justifyContent: 'center', margin: '30px 0', alignItems: 'flex-end', height: '180px' }}>
+              <div style={{ display: 'flex', gap: '40px', justifyContent: 'center', margin: '30px 0', alignItems: 'flex-end', height: '180px' }}>
                 
-                {/* Source */}
-                <div onClick={() => selectedJug && applyJugAction(`fill${selectedJug}`)} style={{ width: '60px', height: '60px', background: '#37474f', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '2px solid #64b5f6', color: '#64b5f6' }}>Source</div>
-
-                <div onClick={() => handleJugClick(7)} style={{ width: '90px', height: '140px', border: '4px solid #888', borderTop: 'none', position: 'relative', background: '#111', cursor: 'pointer', borderColor: selectedJug === 7 ? '#ffb74d' : '#888' }}>
-                  <div style={{ position: 'absolute', bottom: '0', width: '100%', height: `${(j7/7)*100}%`, background: 'rgba(33, 150, 243, 0.8)', transition: 'height 0.4s ease-out' }}></div>
-                  <div style={{ position: 'absolute', bottom: '-30px', width: '100%', textAlign: 'center', color: '#aaa' }}>7L TANK</div>
-                  <div style={{ position: 'absolute', width: '100%', textAlign: 'center', color: '#fff', top: '50%' }}>{j7}L</div>
+                {/* 7L Tank */}
+                <div onClick={() => setActiveMenu(activeMenu === 7 ? null : 7)} style={{ width: '90px', height: '140px', border: '4px solid rgba(255,255,255,0.8)', borderTop: 'none', position: 'relative', background: 'rgba(255,255,255,0.1)', cursor: 'pointer', borderRadius: '0 0 10px 10px', boxShadow: activeMenu === 7 ? '0 0 15px #64b5f6' : 'none' }}>
+                  <div style={{ position: 'absolute', bottom: '0', width: '100%', height: `${(j7/7)*100}%`, background: 'rgba(33, 150, 243, 0.7)', transition: 'height 0.4s ease-out', borderRadius: '0 0 6px 6px' }}></div>
+                  <div style={{ position: 'absolute', bottom: '-30px', width: '100%', textAlign: 'center', color: '#fff', fontWeight: 'bold' }}>7L GLASS</div>
+                  <div style={{ position: 'absolute', width: '100%', textAlign: 'center', color: '#fff', top: '50%', textShadow: '0 0 5px #000' }}>{j7}L</div>
+                  {renderJugMenu(7)}
                 </div>
 
-                <div onClick={() => handleJugClick(4)} style={{ width: '70px', height: '80px', border: '4px solid #888', borderTop: 'none', position: 'relative', background: '#111', cursor: 'pointer', borderColor: selectedJug === 4 ? '#ffb74d' : '#888' }}>
-                  <div style={{ position: 'absolute', bottom: '0', width: '100%', height: `${(j4/4)*100}%`, background: 'rgba(33, 150, 243, 0.8)', transition: 'height 0.4s ease-out' }}></div>
-                  <div style={{ position: 'absolute', bottom: '-30px', width: '100%', textAlign: 'center', color: '#aaa' }}>4L TANK</div>
-                  <div style={{ position: 'absolute', width: '100%', textAlign: 'center', color: '#fff', top: '50%' }}>{j4}L</div>
+                {/* 4L Tank */}
+                <div onClick={() => setActiveMenu(activeMenu === 4 ? null : 4)} style={{ width: '70px', height: '80px', border: '4px solid rgba(255,255,255,0.8)', borderTop: 'none', position: 'relative', background: 'rgba(255,255,255,0.1)', cursor: 'pointer', borderRadius: '0 0 10px 10px', boxShadow: activeMenu === 4 ? '0 0 15px #64b5f6' : 'none' }}>
+                  <div style={{ position: 'absolute', bottom: '0', width: '100%', height: `${(j4/4)*100}%`, background: 'rgba(33, 150, 243, 0.7)', transition: 'height 0.4s ease-out', borderRadius: '0 0 6px 6px' }}></div>
+                  <div style={{ position: 'absolute', bottom: '-30px', width: '100%', textAlign: 'center', color: '#fff', fontWeight: 'bold' }}>4L GLASS</div>
+                  <div style={{ position: 'absolute', width: '100%', textAlign: 'center', color: '#fff', top: '50%', textShadow: '0 0 5px #000' }}>{j4}L</div>
+                  {renderJugMenu(4)}
                 </div>
-
-                {/* Drain */}
-                <div onClick={() => selectedJug && applyJugAction(`empty${selectedJug}`)} style={{ width: '60px', height: '60px', background: '#37474f', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '2px solid #ef5350', color: '#ef5350' }}>Drain</div>
               </div>
 
               <p style={{ textAlign: 'center', fontSize: '1.2rem', margin: '15px 0', color: '#aaa', marginTop: '50px' }}>Moves Registered: <strong>{jugActions.length}</strong></p>
@@ -273,50 +315,70 @@ function AptitudeRealm({ teamState, socket }) {
             <div>
               <h3 style={{ color: '#ffb74d' }}>OFFLINE: Restoring Communications</h3>
               <div style={{ padding: '15px', background: '#2c2c2c', borderLeft: '4px solid #ffb74d', marginBottom: '20px', lineHeight: '1.6' }}>
-                <p><strong>Directive:</strong> Use two uneven 60-minute fuses (A and B) to measure exactly 45 minutes.</p>
+                <p><strong>Directive:</strong> Measure exactly 45 minutes of real time. Click the ends of the physical wires to ignite them, then hit the Progress Time button to simulate burning.</p>
               </div>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', margin: '30px 0', padding: '20px', background: '#111', borderRadius: '8px' }}>
-                {/* Fuse A Visual */}
-                <div>
-                  <div style={{ color: '#aaa', marginBottom: '5px' }}>Fuse A (60m)</div>
-                  <div style={{ width: '100%', height: '10px', background: '#333', position: 'relative' }}>
-                    <div style={{ position: 'absolute', top: '-5px', left: 0, right: 0, display: 'flex', justifyContent: 'space-between' }}>
-                      <div style={{ width: '20px', height: '20px', background: aLitBoth ? '#ff5252' : '#888', borderRadius: '50%', boxShadow: aLitBoth ? '0 0 10px red' : 'none' }}></div>
-                      <div style={{ width: '20px', height: '20px', background: aLitBoth ? '#ff5252' : '#888', borderRadius: '50%', boxShadow: aLitBoth ? '0 0 10px red' : 'none' }}></div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '40px', margin: '40px 0', padding: '20px', background: '#111', borderRadius: '8px' }}>
+                
+                {/* Wire A Physical Simulation */}
+                <div style={{ position: 'relative' }}>
+                  <div style={{ color: '#aaa', marginBottom: '10px', fontWeight: 'bold' }}>Thick Wire A (60m) - {fuseAMins}m left</div>
+                  <div style={{ width: '100%', height: '12px', background: '#333', position: 'relative', borderRadius: '6px' }}>
+                    {/* Visual Burn Progress */}
+                    <div style={{ 
+                      position: 'absolute', top: 0, bottom: 0, 
+                      left: aLitL ? 0 : 'auto', 
+                      right: aLitR && !aLitL ? 0 : 'auto', 
+                      width: `${(fuseAMins/60)*100}%`, 
+                      background: 'repeating-linear-gradient(45deg, #777, #777 10px, #888 10px, #888 20px)',
+                      borderRadius: '6px', transition: 'width 0.5s' 
+                    }}></div>
+                    
+                    {/* Left Ignite Hitbox */}
+                    <div onClick={() => toggleFuse('A', 'L')} style={{ position: 'absolute', top: '-15px', left: '-15px', width: '30px', height: '30px', background: 'transparent', cursor: 'pointer', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                      {aLitL && fuseAMins > 0 ? <span style={{ fontSize: '1.5rem', animation: 'flicker 0.5s infinite' }}>🔥</span> : <div style={{ width: '10px', height: '10px', background: '#aaa', borderRadius: '50%' }}></div>}
                     </div>
-                    <div style={{ width: `${fuseALength}%`, height: '100%', background: '#ffb74d', margin: '0 auto', transition: 'width 0.5s' }}></div>
+
+                    {/* Right Ignite Hitbox */}
+                    <div onClick={() => toggleFuse('A', 'R')} style={{ position: 'absolute', top: '-15px', right: '-15px', width: '30px', height: '30px', background: 'transparent', cursor: 'pointer', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                      {aLitR && fuseAMins > 0 ? <span style={{ fontSize: '1.5rem', animation: 'flicker 0.5s infinite' }}>🔥</span> : <div style={{ width: '10px', height: '10px', background: '#aaa', borderRadius: '50%' }}></div>}
+                    </div>
                   </div>
                 </div>
 
-                {/* Fuse B Visual */}
-                <div>
-                  <div style={{ color: '#aaa', marginBottom: '5px' }}>Fuse B (60m)</div>
-                  <div style={{ width: '100%', height: '10px', background: '#333', position: 'relative' }}>
-                    <div style={{ position: 'absolute', top: '-5px', left: 0, right: 0, display: 'flex', justifyContent: 'space-between' }}>
-                      <div style={{ width: '20px', height: '20px', background: bLitOne || bLitOther ? '#ff5252' : '#888', borderRadius: '50%', boxShadow: bLitOne ? '0 0 10px red' : 'none' }}></div>
-                      <div style={{ width: '20px', height: '20px', background: bLitOther ? '#ff5252' : '#888', borderRadius: '50%', boxShadow: bLitOther ? '0 0 10px red' : 'none' }}></div>
+                {/* Wire B Physical Simulation */}
+                <div style={{ position: 'relative' }}>
+                  <div style={{ color: '#aaa', marginBottom: '10px', fontWeight: 'bold' }}>Thin Wire B (60m) - {fuseBMins}m left</div>
+                  <div style={{ width: '100%', height: '8px', background: '#333', position: 'relative', borderRadius: '4px' }}>
+                    {/* Visual Burn Progress */}
+                    <div style={{ 
+                      position: 'absolute', top: 0, bottom: 0, 
+                      left: bLitL ? 0 : 'auto', 
+                      right: bLitR && !bLitL ? 0 : 'auto', 
+                      width: `${(fuseBMins/60)*100}%`, 
+                      background: 'repeating-linear-gradient(45deg, #999, #999 10px, #aaa 10px, #aaa 20px)',
+                      borderRadius: '4px', transition: 'width 0.5s' 
+                    }}></div>
+                    
+                    {/* Left Ignite Hitbox */}
+                    <div onClick={() => toggleFuse('B', 'L')} style={{ position: 'absolute', top: '-15px', left: '-15px', width: '30px', height: '30px', background: 'transparent', cursor: 'pointer', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                      {bLitL && fuseBMins > 0 ? <span style={{ fontSize: '1.5rem', animation: 'flicker 0.5s infinite' }}>🔥</span> : <div style={{ width: '10px', height: '10px', background: '#aaa', borderRadius: '50%' }}></div>}
                     </div>
-                    <div style={{ width: `${fuseBLength}%`, height: '100%', background: '#ffb74d', transition: 'width 0.5s' }}></div>
+
+                    {/* Right Ignite Hitbox */}
+                    <div onClick={() => toggleFuse('B', 'R')} style={{ position: 'absolute', top: '-15px', right: '-15px', width: '30px', height: '30px', background: 'transparent', cursor: 'pointer', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                      {bLitR && fuseBMins > 0 ? <span style={{ fontSize: '1.5rem', animation: 'flicker 0.5s infinite' }}>🔥</span> : <div style={{ width: '10px', height: '10px', background: '#aaa', borderRadius: '50%' }}></div>}
+                    </div>
                   </div>
                 </div>
+                
+                <style>{`@keyframes flicker { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.1); } 100% { opacity: 1; transform: scale(1); } }`}</style>
               </div>
 
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', margin: '20px 0' }}>
-                {['light_a_both', 'light_b_one', 'wait_a', 'light_b_other', 'wait_b'].map(action => (
-                  <button 
-                    key={action}
-                    className="btn-primary" 
-                    style={{ flex: '1 1 30%', background: fuseActions.includes(action) ? '#ffb74d' : '#37474f', color: fuseActions.includes(action) ? '#000' : '#fff', border: '1px solid #555' }}
-                    onClick={() => {
-                      setFuseClicks(prev => prev + 1);
-                      if(!fuseActions.includes(action)) setFuseActions([...fuseActions, action]);
-                    }}>
-                    {action.replace(/_/g, ' ').toUpperCase()}
-                  </button>
-                ))}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '20px 0', padding: '15px', background: 'rgba(255, 183, 77, 0.1)', border: '1px solid #ffb74d', borderRadius: '8px' }}>
+                <span style={{ fontSize: '1.2rem', color: '#ffb74d', fontWeight: 'bold' }}>Simulated Time Elapsed: {totalTime} mins</span>
+                <button className="btn-primary" onClick={handleWait} style={{ background: '#ffb74d', color: '#000', padding: '10px 20px' }}>Progress Time ⏱️</button>
               </div>
-              <p style={{ color: '#aaa' }}>Buffer: [ {fuseActions.join(' ] -> [ ')} ]</p>
               
               <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
                 <button className="btn-primary" onClick={undoFuses} style={{ flex: 1, background: '#222', color: '#fff' }}>UNDO</button>

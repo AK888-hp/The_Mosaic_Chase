@@ -78,11 +78,8 @@ const validateWaterJug = (actions) => {
   return j7 === 5;
 };
 
-const validateFuses = (actions) => {
-  // Expected logic: light A both, light B one -> wait A (30m) -> light B other -> wait B (15m) -> total 45m
-  const correct = ['light_a_both', 'light_b_one', 'wait_a', 'light_b_other', 'wait_b'];
-  if (actions.length !== correct.length) return false;
-  return actions.every((val, index) => val === correct[index]);
+const validateFuses = (totalTime) => {
+  return totalTime === 45;
 };
 
 const validateKnapsack = (selectedIds) => {
@@ -147,7 +144,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('place_jigsaw_piece', async (data) => {
-    const { teamCode, index, pieceId } = data;
+    const { teamCode, index: dropIndex, pieceId } = data;
     try {
       const team = await Team.findOne({ code: teamCode });
       if (team && !team.completed) {
@@ -158,11 +155,12 @@ io.on('connection', (socket) => {
         // Prevent piece duplication by clearing its old position if it existed
         const oldIndex = team.jigsawState.findIndex(p => p === pieceId);
         if (oldIndex > -1) {
-          team.jigsawState.set(oldIndex, null);
+          team.jigsawState[oldIndex] = null;
         }
         
         // Place in new position
-        team.jigsawState.set(index, pieceId);
+        team.jigsawState[dropIndex] = pieceId;
+        team.markModified('jigsawState');
 
         let correctCount = 0;
         team.jigsawState.forEach((piece, i) => {
