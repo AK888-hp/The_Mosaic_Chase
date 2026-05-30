@@ -44,12 +44,18 @@ function JigsawFusion({ teamState, socket }) {
 
   const handleSlotClick = (dropIndex) => {
     if (selectedPiece !== null) {
+      if (gridState[dropIndex] === selectedPiece) {
+        setSelectedPiece(null); // Deselect if clicking the same piece
+        return;
+      }
       socket.emit('place_jigsaw_piece', {
         teamCode: teamState.code,
         index: dropIndex,
         pieceId: selectedPiece
       });
       setSelectedPiece(null);
+    } else if (gridState[dropIndex] !== null) {
+      setSelectedPiece(gridState[dropIndex]);
     }
   };
 
@@ -108,7 +114,6 @@ function JigsawFusion({ teamState, socket }) {
                 className="jigsaw-piece"
                 draggable={!teamState.completed}
                 onDragStart={(e) => handleDragStart(e, pieceId)}
-                onClick={(e) => !teamState.completed && handlePieceClick(e, pieceId)}
                 style={{
                   backgroundImage: 'url(/mosaic.png)',
                   backgroundPosition: getBackgroundPosition(pieceId),
