@@ -188,6 +188,20 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('initiate_fusion', async ({ teamCode }) => {
+    try {
+      const team = await Team.findOne({ code: teamCode });
+      if (team && !team.jigsawInitiated) {
+        team.jigsawInitiated = true;
+        await team.save();
+        io.to(teamCode).emit('team_update', team);
+        io.to('admin_room').emit('admin_update');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  });
+
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
   });

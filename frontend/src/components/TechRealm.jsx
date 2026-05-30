@@ -19,12 +19,17 @@ function TechRealm({ teamState, socket }) {
   const [showReward, setShowReward] = useState(false);
   const [nextTaskToAdvance, setNextTaskToAdvance] = useState(null);
 
-  // Auto-advance logic if revisiting
   useEffect(() => {
     if (isTask1Done && !isTask2Done) setCurrentTask(2);
     if (isTask2Done && !isTask3Done) setCurrentTask(3);
-    if (isTask3Done) setCurrentTask(4); // Done state
+    if (isTask3Done) setCurrentTask(4);
   }, [isTask1Done, isTask2Done, isTask3Done]);
+
+  useEffect(() => {
+    if (teamState?.jigsawInitiated) {
+      navigate('/fusion');
+    }
+  }, [teamState?.jigsawInitiated, navigate]);
 
   useEffect(() => {
     const handleSuccess = ({ taskKey }) => {
@@ -52,39 +57,59 @@ function TechRealm({ teamState, socket }) {
     }
   };
 
-  // Task 1: Hanoi State - 6 Discs
+  // Task 1: Hanoi State
   const [hanoiPegs, setHanoiPegs] = useState([[1, 2, 3, 4, 5, 6], [], []]);
   const [hanoiMoves, setHanoiMoves] = useState([]);
+  const [selectedPeg, setSelectedPeg] = useState(null); // For Mobile Click-to-move
 
-  const handleDragStart = (e, pegIndex) => {
-    e.dataTransfer.setData('sourcePeg', pegIndex);
-  };
-
-  const handleDrop = (e, targetPegIndex) => {
-    e.preventDefault();
-    const sourcePegIndex = parseInt(e.dataTransfer.getData('sourcePeg'));
-    
-    if (sourcePegIndex !== targetPegIndex) {
-      const fromPeg = [...hanoiPegs[sourcePegIndex]];
-      const toPeg = [...hanoiPegs[targetPegIndex]];
-      const disc = fromPeg[0];
-      
-      if (toPeg.length === 0 || toPeg[0] > disc) {
-        fromPeg.shift();
-        toPeg.unshift(disc);
-        const newPegs = [...hanoiPegs];
-        newPegs[sourcePegIndex] = fromPeg;
-        newPegs[targetPegIndex] = toPeg;
-        setHanoiPegs(newPegs);
-        setHanoiMoves([...hanoiMoves, { from: sourcePegIndex, to: targetPegIndex }]);
-      } else {
-        setErrorMsg("Invalid move: Cannot place larger disc on a smaller one.");
-        setTimeout(() => setErrorMsg(''), 2000);
+  const handlePegClick = (pegIndex) => {
+    if (selectedPeg === null) {
+      if (hanoiPegs[pegIndex].length > 0) setSelectedPeg(pegIndex);
+    } else {
+      if (selectedPeg !== pegIndex) {
+        const fromPeg = [...hanoiPegs[selectedPeg]];
+        const toPeg = [...hanoiPegs[pegIndex]];
+        const disc = fromPeg[0];
+        
+        if (toPeg.length === 0 || toPeg[0] > disc) {
+          fromPeg.shift();
+          toPeg.unshift(disc);
+          const newPegs = [...hanoiPegs];
+          newPegs[selectedPeg] = fromPeg;
+          newPegs[pegIndex] = toPeg;
+          setHanoiPegs(newPegs);
+          setHanoiMoves([...hanoiMoves, { from: selectedPeg, to: pegIndex, disc }]);
+        } else {
+          setErrorMsg("Invalid move: Cannot place larger disc on a smaller one.");
+          setTimeout(() => setErrorMsg(''), 2000);
+        }
       }
+      setSelectedPeg(null);
     }
   };
 
-  const allowDrop = (e) => e.preventDefault();
+  const undoHanoi = () => {
+    if (hanoiMoves.length === 0) return;
+    const lastMove = hanoiMoves[hanoiMoves.length - 1];
+    const newPegs = [...hanoiPegs];
+    const toPeg = [...newPegs[lastMove.to]];
+    const fromPeg = [...newPegs[lastMove.from]];
+    
+    const disc = toPeg.shift();
+    fromPeg.unshift(disc);
+    newPegs[lastMove.to] = toPeg;
+    newPegs[lastMove.from] = fromPeg;
+    
+    setHanoiPegs(newPegs);
+    setHanoiMoves(hanoiMoves.slice(0, -1));
+    setSelectedPeg(null);
+  };
+
+  const resetHanoi = () => {
+    setHanoiPegs([[1, 2, 3, 4, 5, 6], [], []]);
+    setHanoiMoves([]);
+    setSelectedPeg(null);
+  };
 
   const submitHanoi = () => {
     socket.emit('submit_task', { 
@@ -105,11 +130,14 @@ function TechRealm({ teamState, socket }) {
     if (existingIndex > -1) {
       setQueens(queens.filter((_, i) => i !== existingIndex));
     } else {
-      if (queens.length < 8) {
-        setQueens([...queens, { r, c }]);
-      }
+      if (queens.length < 8) setQueens([...queens, { r, c }]);
     }
   };
+
+  const undoQueens = () => {
+    if (queens.length > 0) setQueens(queens.slice(0, -1));
+  };
+  const resetQueens = () => setQueens([]);
 
   const rowCounts = {}; const colCounts = {}; const majDiagCounts = {}; const minDiagCounts = {};
   queens.forEach(q => {
@@ -156,6 +184,11 @@ function TechRealm({ teamState, socket }) {
     }
   };
 
+  const undoDijkstra = () => {
+    if (path.length > 1) setPath(path.slice(0, -1));
+  };
+  const resetDijkstra = () => setPath(['A']);
+
   const submitDijkstra = () => {
     socket.emit('submit_task', { 
       teamCode: teamState.code, 
@@ -190,11 +223,7 @@ function TechRealm({ teamState, socket }) {
   }, [teamState, navigate]);
 
   if (!teamState) {
-    return (
-      <div style={{ textAlign: 'center', marginTop: '50px' }}>
-        <h3>Loading game data...</h3>
-      </div>
-    );
+    return <div style={{ textAlign: 'center', marginTop: '50px' }}><h3>Loading game data...</h3></div>;
   }
 
   return (
@@ -220,42 +249,47 @@ function TechRealm({ teamState, socket }) {
             <div>
               <h3 style={{ color: '#64b5f6' }}>Layer 1: The Gateway Gateways</h3>
               <p style={{ lineHeight: '1.5' }}>
-                The outer perimeter defense system is completely locked up by data deadlocks. 
-                To boot up the hacking console and unlock the gateway, you must clear the data spires.
-                <strong> Rule: Move all 6 discs to the rightmost spire. A larger disc can never be placed on a smaller disc.</strong>
+                The outer perimeter defense system is completely locked up. 
+                <strong> Rule: Move all 6 discs to the rightmost spire. Tap a spire to select its top disc, then tap another spire to place it.</strong>
               </p>
               
               <div style={{ display: 'flex', gap: '20px', height: '220px', alignItems: 'flex-end', justifyContent: 'center', margin: '30px 0' }}>
                 {hanoiPegs.map((peg, pegIndex) => (
                   <div 
                     key={pegIndex} 
-                    onDragOver={allowDrop}
-                    onDrop={(e) => handleDrop(e, pegIndex)}
+                    onClick={() => handlePegClick(pegIndex)}
                     style={{ 
                       width: '120px', height: '100%', border: 'none', 
-                      display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', position: 'relative'
+                      display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', position: 'relative',
+                      cursor: 'pointer',
+                      background: selectedPeg === pegIndex ? 'rgba(100, 181, 246, 0.2)' : 'transparent',
+                      borderRadius: '8px'
                     }}>
                     <div style={{ position: 'absolute', bottom: 0, width: '12px', height: '100%', background: 'var(--wood-medium)', borderRadius: '6px 6px 0 0', zIndex: 0 }}></div>
                     <div style={{ position: 'absolute', bottom: -10, width: '100%', height: '10px', background: 'var(--wood-medium)', borderRadius: '4px', zIndex: 0 }}></div>
                     {peg.map((disc, idx) => (
                       <div 
                         key={idx} 
-                        draggable={idx === 0}
-                        onDragStart={(e) => idx === 0 ? handleDragStart(e, pegIndex) : e.preventDefault()}
                         style={{ 
                           width: `${30 + disc * 11}%`, height: '20px', 
                           background: `hsl(${200 + disc * 15}, 80%, 45%)`, 
                           borderRadius: '6px', zIndex: 1, border: '2px solid rgba(0,0,0,0.3)',
-                          cursor: idx === 0 ? 'grab' : 'default',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
-                          marginBottom: '2px'
+                          boxShadow: (selectedPeg === pegIndex && idx === 0) ? '0 0 10px #fff' : '0 2px 4px rgba(0,0,0,0.4)',
+                          marginBottom: '2px',
+                          transform: (selectedPeg === pegIndex && idx === 0) ? 'translateY(-10px)' : 'none',
+                          transition: 'transform 0.2s'
                         }}
                       ></div>
                     ))}
                   </div>
                 ))}
               </div>
+              
               <p style={{ textAlign: 'center', fontSize: '1.2rem', margin: '15px 0' }}>Score (Clicks/Moves): <strong>{hanoiMoves.length}</strong></p>
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                <button className="btn-primary" onClick={undoHanoi} style={{ flex: 1, background: '#37474f' }}>Undo Move</button>
+                <button className="btn-primary" onClick={resetHanoi} style={{ flex: 1, background: '#37474f' }}>Reset All</button>
+              </div>
               <button className="btn-primary" onClick={submitHanoi} style={{ width: '100%' }}>Submit Configuration</button>
             </div>
           )}
@@ -264,7 +298,7 @@ function TechRealm({ teamState, socket }) {
             <div>
               <h3 style={{ color: '#64b5f6' }}>Layer 2: The Mainframe Core</h3>
               <p style={{ lineHeight: '1.5' }}>
-                You've penetrated deep into the mainframe database, but automated anti-virus bots are launching a counter-attack! 
+                Automated anti-virus bots are launching a counter-attack! 
                 <strong> Rule: Deploy 8 elite defensive firewalls (Queens) across the grid. No two firewalls can share the same row, column, or diagonal line.</strong>
               </p>
               {conflictMessage && <div style={{ color: 'var(--danger)', fontWeight: 'bold', marginBottom: '10px' }}>{conflictMessage}</div>}
@@ -293,6 +327,10 @@ function TechRealm({ teamState, socket }) {
                 )}
               </div>
               <p style={{ textAlign: 'center', fontSize: '1.2rem', margin: '15px 0' }}>Score (Clicks/Moves): <strong>{queensMoves}</strong></p>
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                <button className="btn-primary" onClick={undoQueens} style={{ flex: 1, background: '#37474f' }}>Undo Queen</button>
+                <button className="btn-primary" onClick={resetQueens} style={{ flex: 1, background: '#37474f' }}>Reset Board</button>
+              </div>
               <button className="btn-primary" onClick={submitNQueens} style={{ width: '100%' }}>Initialize Firewalls</button>
             </div>
           )}
@@ -301,7 +339,6 @@ function TechRealm({ teamState, socket }) {
             <div>
               <h3 style={{ color: '#64b5f6' }}>Layer 3: The Data Safehouse</h3>
               <p style={{ lineHeight: '1.5' }}>
-                The counter-attack is neutralized and the central data vault is exposed, but it's hosted on a chaotic network structure.
                 <strong> Rule: Calculate the absolute shortest path mathematically from Start (A) to Target (H) before a full system lockdown occurs.</strong>
               </p>
               
@@ -335,14 +372,9 @@ function TechRealm({ teamState, socket }) {
                   <text x="400" y="140" fill="#fff" fontSize="14">2</text>
 
                   {[
-                    { id: 'A', cx: 50, cy: 150 },
-                    { id: 'B', cx: 150, cy: 50 },
-                    { id: 'C', cx: 150, cy: 150 },
-                    { id: 'D', cx: 150, cy: 250 },
-                    { id: 'E', cx: 250, cy: 100 },
-                    { id: 'F', cx: 250, cy: 200 },
-                    { id: 'G', cx: 350, cy: 150 },
-                    { id: 'H', cx: 450, cy: 150 }
+                    { id: 'A', cx: 50, cy: 150 }, { id: 'B', cx: 150, cy: 50 }, { id: 'C', cx: 150, cy: 150 },
+                    { id: 'D', cx: 150, cy: 250 }, { id: 'E', cx: 250, cy: 100 }, { id: 'F', cx: 250, cy: 200 },
+                    { id: 'G', cx: 350, cy: 150 }, { id: 'H', cx: 450, cy: 150 }
                   ].map(n => (
                     <g key={n.id} onClick={() => handleNodeClick(n.id)} style={{ cursor: 'pointer' }}>
                       <circle 
@@ -360,6 +392,10 @@ function TechRealm({ teamState, socket }) {
                 Path: {path.join(' ➔ ')}
               </div>
               <p style={{ textAlign: 'center', fontSize: '1.2rem', margin: '15px 0' }}>Score (Clicks/Moves): <strong>{dijkstraMoves}</strong></p>
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                <button className="btn-primary" onClick={undoDijkstra} style={{ flex: 1, background: '#112240', color: '#64ffda' }}>Undo Node</button>
+                <button className="btn-primary" onClick={resetDijkstra} style={{ flex: 1, background: '#112240', color: '#64ffda' }}>Reset Path</button>
+              </div>
               <button className="btn-primary" onClick={submitDijkstra} style={{ width: '100%', background: 'linear-gradient(to bottom, #112240, #0a192f)', borderColor: '#64ffda', color: '#64ffda' }}>Execute Route</button>
             </div>
           )}
@@ -374,7 +410,11 @@ function TechRealm({ teamState, socket }) {
                   <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
                 </div>
               ) : (
-                <button className="btn-primary" onClick={() => navigate('/fusion')} style={{ width: '100%', marginTop: '30px', padding: '20px', fontSize: '1.5rem', boxShadow: '0 0 15px var(--gold-accent)' }}>
+                <button 
+                  className="btn-primary" 
+                  onClick={() => socket.emit('initiate_fusion', { teamCode: teamState.code })} 
+                  style={{ width: '100%', marginTop: '30px', padding: '20px', fontSize: '1.5rem', boxShadow: '0 0 15px var(--gold-accent)' }}
+                >
                   INITIATE JIGSAW FUSION
                 </button>
               )}

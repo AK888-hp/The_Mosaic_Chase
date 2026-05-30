@@ -28,7 +28,8 @@ const teamSchema = new mongoose.Schema({
   endTime: { type: Date, default: null },
   completed: { type: Boolean, default: false },
   totalScore: { type: Number, default: 0 },
-  jigsawClicks: { type: Number, default: 0 }
+  jigsawClicks: { type: Number, default: 0 },
+  jigsawInitiated: { type: Boolean, default: false }
 });
 
 module.exports = mongoose.model('Team', teamSchema);

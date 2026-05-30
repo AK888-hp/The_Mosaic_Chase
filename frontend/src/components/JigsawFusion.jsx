@@ -20,9 +20,18 @@ function JigsawFusion({ teamState, socket }) {
   const totalPiecesEarned = teamState.pieces.tech + teamState.pieces.aptitude;
   const gridState = teamState.jigsawState || new Array(36).fill(null);
 
-  // Available pieces (0 to 35) that haven't been placed on the grid yet
-  const availablePieces = Array.from({ length: totalPiecesEarned }).map((_, i) => i)
-    .filter(pieceIndex => !gridState.includes(pieceIndex));
+  // Available pieces (0 to 35) that haven't been placed on the grid yet, randomized
+  const availablePieces = React.useMemo(() => {
+    const pieces = Array.from({ length: totalPiecesEarned })
+      .map((_, i) => i)
+      .filter(pieceIndex => !gridState.includes(pieceIndex));
+    // Fisher-Yates shuffle
+    for (let i = pieces.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pieces[i], pieces[j]] = [pieces[j], pieces[i]];
+    }
+    return pieces;
+  }, [totalPiecesEarned, gridState.join(',')]);
 
   const handlePieceClick = (e, pieceId) => {
     e.stopPropagation();
