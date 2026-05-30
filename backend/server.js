@@ -200,6 +200,26 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('force_submit_jigsaw', async ({ teamCode }) => {
+    try {
+      const team = await Team.findOne({ code: teamCode });
+      if (team && !team.completed) {
+        team.completed = true;
+        team.endTime = new Date();
+        
+        // Final Score calculation: sum of all moves/clicks + time in seconds + 1000 penalty!
+        const timeInSecs = Math.floor((team.endTime - team.startTime) / 1000);
+        team.totalScore += (team.jigsawClicks || 0) + timeInSecs + 1000;
+
+        await team.save();
+        io.to(teamCode).emit('team_update', team);
+        io.to('admin_room').emit('admin_update');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  });
+
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
   });

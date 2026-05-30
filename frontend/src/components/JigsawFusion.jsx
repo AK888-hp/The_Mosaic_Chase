@@ -151,10 +151,25 @@ function JigsawFusion({ teamState, socket }) {
         </div>
       </div>
       
-      {/* Jigsaw Stats */}
-      <div style={{ marginTop: '20px', color: '#aaa', fontFamily: 'monospace' }}>
-        Jigsaw Clicks Logged: {teamState.jigsawClicks || 0}
-      </div>
+      {/* Jigsaw Stats & Force Submit */}
+      {!teamState.completed && (
+        <div style={{ marginTop: '40px', width: '100%', maxWidth: '600px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
+          <div style={{ color: '#aaa', fontFamily: 'monospace' }}>
+            Jigsaw Clicks Logged: {teamState.jigsawClicks || 0}
+          </div>
+          <button 
+            className="btn-primary" 
+            style={{ background: 'var(--danger)', border: 'none', padding: '15px 30px', fontWeight: 'bold' }}
+            onClick={() => {
+              if (window.confirm("WARNING: Are you sure you want to force submit? If your mosaic is incomplete, you will incur a massive 1000 point penalty!")) {
+                socket.emit('force_submit_jigsaw', { teamCode: teamState.code });
+              }
+            }}
+          >
+            FORCE SUBMIT (Incurs Penalty if Incomplete)
+          </button>
+        </div>
+      )}
     </div>
   );
 }

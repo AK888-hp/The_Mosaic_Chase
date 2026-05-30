@@ -270,7 +270,7 @@ function AptitudeRealm({ teamState, socket }) {
       <div className="wood-card" style={{ maxWidth: '800px', backgroundColor: '#1e1e1e', border: '2px solid #555' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #333', paddingBottom: '10px', marginBottom: '20px' }}>
           <h2 style={{ fontFamily: 'monospace', color: '#fff' }}>Survival Outpost (Logic)</h2>
-          <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--danger)', fontFamily: 'monospace' }}>
+          <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--gold-accent)', fontFamily: 'monospace' }}>
             TIME: {formatTime(elapsed)}
           </div>
         </div>
