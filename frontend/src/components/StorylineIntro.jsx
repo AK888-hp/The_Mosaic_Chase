@@ -23,7 +23,7 @@ function StorylineIntro({ teamState }) {
   };
 
   return (
-    <div className="wood-card" style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'left' }}>
+    <div className="wood-card" style={{ width: '90%', maxWidth: '800px', margin: '40px auto', textAlign: 'justify', lineHeight: '1.8' }}>
       <h2 style={{ textAlign: 'center', fontSize: '2rem', marginBottom: '1.5rem' }}>The Scattered Nexus</h2>
       
       <div style={{ fontSize: '1.1rem', lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: '15px' }}>

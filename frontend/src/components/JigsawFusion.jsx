@@ -92,7 +92,7 @@ function JigsawFusion({ teamState, socket }) {
       )}
 
       {/* Jigsaw Grid */}
-      <div className="jigsaw-container">
+      <div className="jigsaw-container" style={{ background: 'rgba(0,0,0,0.5)', padding: '5px', borderRadius: '4px', border: '2px solid rgba(255, 255, 255, 0.2)' }}>
         {gridState.map((pieceId, index) => (
           <div 
             key={index} 
@@ -100,6 +100,10 @@ function JigsawFusion({ teamState, socket }) {
             onDragOver={allowDrop}
             onDrop={(e) => handleDrop(e, index)}
             onClick={() => handleSlotClick(index)}
+            style={{
+              background: pieceId === null ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+              border: pieceId === null ? '1px dashed rgba(255, 255, 255, 0.2)' : 'none'
+            }}
           >
             {pieceId !== null && (
               <div 

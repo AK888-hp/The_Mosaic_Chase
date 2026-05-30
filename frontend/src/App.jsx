@@ -43,6 +43,25 @@ function PageWrapper({ children }) {
   );
 }
 
+function BackgroundDecorations() {
+  return (
+    <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', pointerEvents: 'none', zIndex: -1, overflow: 'hidden' }}>
+      <svg width="100" height="100" viewBox="0 0 100 100" style={{ position: 'absolute', top: '5%', left: '5%', opacity: 0.05, transform: 'rotate(15deg)' }}>
+        <path d="M20,20 h20 a10,10 0 1,1 20,0 h20 v20 a10,10 0 1,0 0,20 v20 h-20 a10,10 0 1,1 -20,0 h-20 v-20 a10,10 0 1,1 0,-20 v-20 Z" fill="#fff" />
+      </svg>
+      <svg width="120" height="120" viewBox="0 0 100 100" style={{ position: 'absolute', bottom: '10%', right: '10%', opacity: 0.05, transform: 'rotate(-25deg)' }}>
+        <path d="M20,20 h20 a10,10 0 1,0 20,0 h20 v20 a10,10 0 1,1 0,20 v20 h-20 a10,10 0 1,0 -20,0 h-20 v-20 a10,10 0 1,0 0,-20 v-20 Z" fill="#fff" />
+      </svg>
+      <svg width="80" height="80" viewBox="0 0 100 100" style={{ position: 'absolute', top: '40%', right: '5%', opacity: 0.03, transform: 'rotate(45deg)' }}>
+        <path d="M20,20 h20 a10,10 0 1,1 20,0 h20 v20 a10,10 0 1,1 0,20 v20 h-20 a10,10 0 1,1 -20,0 h-20 v-20 a10,10 0 1,0 0,-20 v-20 Z" fill="#fff" />
+      </svg>
+      <svg width="150" height="150" viewBox="0 0 100 100" style={{ position: 'absolute', bottom: '5%', left: '2%', opacity: 0.03, transform: 'rotate(-10deg)' }}>
+        <path d="M20,20 h20 a10,10 0 1,0 20,0 h20 v20 a10,10 0 1,0 0,20 v20 h-20 a10,10 0 1,1 -20,0 h-20 v-20 a10,10 0 1,1 0,-20 v-20 Z" fill="#fff" />
+      </svg>
+    </div>
+  );
+}
+
 function AnimatedRoutes({ teamState, setTeamState, setPlayerRole, socket }) {
   const location = useLocation();
   return (
@@ -132,6 +151,7 @@ function App() {
   return (
     <Router>
       <div className="app-container">
+        <BackgroundDecorations />
         <Header teamState={teamState} />
         
         <main>

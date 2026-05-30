@@ -119,7 +119,7 @@ function AptitudeRealm({ teamState, socket }) {
     const otherVol = jugCapacity === 7 ? j4 : j7;
     
     return (
-      <div style={{ position: 'absolute', bottom: '20%', left: '105%', background: '#333', padding: '10px', borderRadius: '8px', zIndex: 10, display: 'flex', flexDirection: 'column', gap: '5px', border: '1px solid #555', width: '120px' }}>
+      <div style={{ position: 'absolute', top: '105%', left: '50%', transform: 'translateX(-50%)', background: '#333', padding: '10px', borderRadius: '8px', zIndex: 10, display: 'flex', flexDirection: 'column', gap: '5px', border: '1px solid #555', width: '120px', boxShadow: '0 5px 15px rgba(0,0,0,0.5)' }}>
         <button className="btn-primary" style={{ padding: '5px', fontSize: '0.8rem', background: '#37474f', opacity: currentVol === jugCapacity ? 0.5 : 1 }} disabled={currentVol === jugCapacity} onClick={(e) => { e.stopPropagation(); applyJugAction(`fill${jugCapacity}`); setActiveMenu(null); }}>Fill</button>
         <button className="btn-primary" style={{ padding: '5px', fontSize: '0.8rem', background: '#37474f', opacity: currentVol === 0 ? 0.5 : 1 }} disabled={currentVol === 0} onClick={(e) => { e.stopPropagation(); applyJugAction(`empty${jugCapacity}`); setActiveMenu(null); }}>Empty</button>
         <button className="btn-primary" style={{ padding: '5px', fontSize: '0.8rem', background: '#37474f', opacity: (currentVol === 0 || otherVol === otherCap) ? 0.5 : 1 }} disabled={currentVol === 0 || otherVol === otherCap} onClick={(e) => { e.stopPropagation(); applyJugAction(`pour${jugCapacity}to${otherCap}`); setActiveMenu(null); }}>Pour to {otherCap}L</button>
