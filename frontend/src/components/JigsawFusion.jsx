@@ -43,7 +43,7 @@ function JigsawFusion({ teamState, socket }) {
   };
 
   const handleSlotClick = (dropIndex) => {
-    if (selectedPiece !== null && gridState[dropIndex] === null) {
+    if (selectedPiece !== null) {
       socket.emit('place_jigsaw_piece', {
         teamCode: teamState.code,
         index: dropIndex,
@@ -61,13 +61,11 @@ function JigsawFusion({ teamState, socket }) {
     e.preventDefault();
     const pieceId = parseInt(e.dataTransfer.getData('pieceId'));
     
-    if (gridState[dropIndex] === null) {
-      socket.emit('place_jigsaw_piece', {
-        teamCode: teamState.code,
-        index: dropIndex,
-        pieceId: pieceId
-      });
-    }
+    socket.emit('place_jigsaw_piece', {
+      teamCode: teamState.code,
+      index: dropIndex,
+      pieceId: pieceId
+    });
   };
 
   const allowDrop = (e) => e.preventDefault();

@@ -16,6 +16,12 @@ function Landing({ setTeamState, setPlayerRole, socket }) {
       return;
     }
 
+    const normalizedCode = teamCode.trim().toLowerCase();
+    if (!/^team\s?\d+$/.test(normalizedCode)) {
+      setError("Team Code must be in the format 'team <number>' (e.g., 'team 1').");
+      return;
+    }
+
     try {
       const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:5000';
       const response = await fetch(`${BACKEND_URL}/api/team/join`, {

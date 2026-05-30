@@ -154,8 +154,10 @@ io.on('connection', (socket) => {
 
         // Prevent piece duplication by clearing its old position if it existed
         const oldIndex = team.jigsawState.findIndex(p => p === pieceId);
+        const pieceAtDrop = team.jigsawState[dropIndex];
+
         if (oldIndex > -1) {
-          team.jigsawState[oldIndex] = null;
+          team.jigsawState[oldIndex] = pieceAtDrop;
         }
         
         // Place in new position
